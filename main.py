@@ -1,12 +1,13 @@
 from RequestHandler import *
 from Message import *
 import ResponseManager as RM
+import DataHandler as Data
 
 
 def getToken():
 	while True:
 		try:
-			tokenPath = input("Enter path to your token: ")
+			tokenPath = 'token.info'
 			with open(tokenPath, 'r', encoding='utf-8') as tpF:
 				token = str(tpF.readline())
 				token = token.replace('\n', '').replace('\r', '').replace(' ', '')
@@ -28,7 +29,10 @@ def clear_updates(rh):
 
 
 def main():
+	Data.create_main_database()
+
 	new_offset = None
+	task_list = {}
 
 	token = getToken()
 
@@ -46,10 +50,7 @@ def main():
 
 		update = update_raw['result'][0]
 
-		______ = RM.Handler(Message(update['message']), rh)
-
-		# RM.handler(update['message']) # написать шутку которая решает что делать дальше
-		# RM.handler(Message(update['message']), rh)
+		resp_manager = RM.Handler(Message(update['message']), rh)
 
 		new_offset = update['update_id'] + 1
 

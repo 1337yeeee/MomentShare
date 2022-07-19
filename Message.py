@@ -6,17 +6,18 @@ class Message:
 		self.message = message
 		self.name = message['chat']['first_name']
 		self.chat_id = message['chat']['id']
-		self.text = message['text']
+		self.username = message['from']['username']
+		self.text = ''
 		self.is_command = False
 		self.is_mention = False
 		self.is_hashtag = False
-		self.is_photo = False  # !!!! need to be checked
+		self.is_photo = False
 		self.command = ''
 		self.mention = ''
 		self.hashtag = ''
 		self.photo_id = ''
 
-		try: self.text = message['chat']['text']
+		try: self.text = message['text']
 		except KeyError: self.text = None
 
 		try:
@@ -27,7 +28,7 @@ class Message:
 			pass
 
 		try:
-			for i in message['entities']:
+			for i in range(len(message['entities'])):
 				if message['entities'][i]['type'] == 'bot_command':
 					self.is_command = True
 					self.command = self.get_from_text(i)
