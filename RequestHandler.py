@@ -1,4 +1,5 @@
 import requests as r
+import json
 
 
 class RequestHandler:
@@ -21,14 +22,18 @@ class RequestHandler:
 		resp = r.get(self.url + method, params)
 		return resp.json()
 
-	def send(self, chat_id: int, text: str):
+	def send(self, chat_id: int, text: str, extra: list = None):
 		""" send message to user
 		:param chat_id: id to send to the text
 		:param text: the text to send to
+		:param extra: extra parameters like reply_markup.
+		extra[0] is for a parameter and extra[1] is for additional data
 		:return: optional. returns a request response
 		"""
 		method = 'sendMessage'
 		params = {'chat_id': chat_id, 'text': text}
+		if extra is not None:
+			params[extra[0]] = json.dumps(extra[1])
 		resp = r.post(self.url + method, params)
 		return resp
 
