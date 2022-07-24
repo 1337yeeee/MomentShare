@@ -37,3 +37,13 @@ class RequestHandler:
 		resp = r.post(self.url + method, params)
 		return resp
 
+	def delete(self, chat_id: int, message_id: int):
+		""" delete message by its id
+		:param chat_id: chat id to delete message from
+		:param message_id: the id of the message to be deleted
+		:return: optional. returns a request response
+		"""
+		method = 'deleteMessage'
+		params = {'chat_id': chat_id, 'message_id': message_id}
+		resp = r.post(self.url + method, params)
+		return resp
