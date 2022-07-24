@@ -35,7 +35,7 @@ class Message:
 					
 				elif message['entities'][i]['type'] == 'mention':
 					self.is_mention = True
-					self.mention = self.get_from_text(i)
+					self.mention = self.get_from_text(i).replace('@', '')
 				elif message['entities'][i]['type'] == 'hashtag':
 					self.is_hashtag = True
 					self.hashtag = self.get_from_text(i)

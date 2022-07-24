@@ -77,12 +77,14 @@ def get_users_friedList(user_id: int):
 	:return: list of user ids
 	"""
 	db = None
-	friends = None
+	friends = []
 	try:
 		db = sqlite3.connect('testdb.db')
 		cursor = db.cursor()
-		cursor.execute(""" SELECT friends FROM users WHERE user_id = ? """, (user_id,))
-		friends = (cursor.fetchone()[0]).split(' ')
+		cursor.execute(""" SELECT friends FROM users WHERE id = ? """, (user_id,))
+		gotten = cursor.fetchone()
+		if gotten is not None:
+			friends = (gotten[0]).split(' ')
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
 	finally:
@@ -104,8 +106,9 @@ def get_user_id(username: str):
 		db = sqlite3.connect('testdb.db')
 		cursor = db.cursor()
 		cursor.execute(""" SELECT id FROM users WHERE username = ? """, (username,))
-		if cursor.fetchone() is not None:
-			user_id = cursor.fetchone()[0]
+		gotten = cursor.fetchone()
+		if gotten is not None:
+			user_id = gotten[0]
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
 	finally:
@@ -126,9 +129,10 @@ def get_username(user_id: int):
 	try:
 		db = sqlite3.connect('testdb.db')
 		cursor = db.cursor()
-		cursor.execute(""" SELECT username FROM users WHERE user_id = ? """, (user_id,))
-		if cursor.fetchone() is not None:
-			username = cursor.fetchone()[0]
+		cursor.execute(""" SELECT username FROM users WHERE id = ? """, (user_id,))
+		gotten = cursor.fetchone()
+		if gotten is not None:
+			username = gotten[0]
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
 	finally:
@@ -138,27 +142,43 @@ def get_username(user_id: int):
 	return username
 
 
-def add_friend(user_id: int, friends_id: int):
+def add_friend(user1_id: int, user2_id: int):
 	""" Use it to add friend to the user's friend list
 
-	:param user_id: the user's id to whom friend to be added
-	:param friends_id: the friend's id who is to be added
-	:return: the message: weather the friend is added weather they are not
+	:param user2_id: the user's id to be added
+	:param user1_id: the user's id to be added
 	"""
 	db = None
 	try:
 		db = sqlite3.connect('testdb.db')
 		cursor = db.cursor()
-		cursor.execute(""" SELECT friends FROM users WHERE user_id = ? """, (user_id,))
-		friends = (cursor.fetchone()[0]).split(' ')
-		if len(friends) < 10:
-			friends.append(friends_id)
-		else:
-			return '{} wasn\'t added to your friends list'.format(get_username(friends_id))
-		friends_s = ''
-		for friend in friends:
-			friends_s += friend + ' '
-		cursor.execute(""" UPDATE users SET friends = ? WHERE user_id = ? """, (friends, ))
+		cursor.execute(""" SELECT friends FROM users WHERE id = ? """, (user1_id,))
+		gotten = cursor.fetchone()
+		if gotten is not None:
+			friends_1 = (gotten[0]).split(' ')
+		cursor.execute(""" SELECT friends FROM users WHERE id = ? """, (user2_id,))
+		gotten = cursor.fetchone()
+		if gotten is not None:
+			friends_2 = (gotten[0]).split(' ')
+		''' !#!#!#!#!#!#!#!#!#!#!#!#!#!#!#
+		# Позже нужно ограничить список друзей
+		!#!#!#!#!#!#!#!#!#!#!#!#!#!#!# '''
+		# if len(friends) < 10:
+		# 	friends.append(friends_id)
+		# else:
+		# 	return "{} wasn't added to your friends list".format(get_username(friends_id))
+		# 1
+		friends_s1 = ''
+		for friend in friends_1:
+			friends_s1 += friend + ' '
+		friends_s1 += str(user2_id)
+		cursor.execute(""" UPDATE users SET friends = ? WHERE id = ? """, (friends_s1, user1_id))
+		# 2
+		friends_s2 = ''
+		for friend in friends_2:
+			friends_s2 += friend + ' '
+		friends_s2 += str(user1_id)
+		cursor.execute(""" UPDATE users SET friends = ? WHERE id = ? """, (friends_s2, user2_id))
 		db.commit()
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
@@ -166,7 +186,7 @@ def add_friend(user_id: int, friends_id: int):
 		if db:
 			db.close()
 		
-	return '{} was added to your friends list'.format(get_username(friends_id))
+	# return '{} was added to your friends list'.format(get_username(friends_id))
 
 
 def delete_friend(user_id: int, friends_id: int):
@@ -180,15 +200,17 @@ def delete_friend(user_id: int, friends_id: int):
 	try:
 		db = sqlite3.connect('testdb.db')
 		cursor = db.cursor()
-		cursor.execute(""" SELECT friends FROM users WHERE user_id = ? """, (user_id,))
-		friends = (cursor.fetchone()[0]).split(' ')
+		cursor.execute(""" SELECT friends FROM users WHERE id = ? """, (user_id,))
+		gotten = cursor.fetchone()
+		if gotten is not None:
+			friends = (gotten[0]).split(' ')
 		if friends_id in friends:
 			friends.remove(friends_id)
-		else: '{} wasn\'t in your friends list'.format(get_username(friends_id))
+		else: "{} wasn't in your friends list".format(get_username(friends_id))
 		friends_s = ''
 		for friend in friends:
 			friends_s += friend + ' '
-		cursor.execute(""" UPDATE users SET friends = ? WHERE user_id = ? """, (friends,))
+		cursor.execute(""" UPDATE users SET friends = ? WHERE id = ? """, (friends,))
 		db.commit()
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
@@ -210,7 +232,7 @@ def get_pictures_of_user(user_id: int):
 	try:
 		db = sqlite3.connect('testdb.db')
 		cursor = db.cursor()
-		cursor.execute(""" SELECT file_id FROM pictures WHERE user_id = ? """, (user_id,))
+		cursor.execute(""" SELECT file_id FROM pictures WHERE id = ? """, (user_id,))
 		pictures = cursor.fetchall()
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)

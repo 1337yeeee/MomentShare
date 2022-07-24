@@ -9,3 +9,7 @@
 test.py
 
 *.db
+
+Const.py
+
+vetsion_history.txt
