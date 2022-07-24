@@ -85,6 +85,8 @@ def get_users_friedList(user_id: int):
 		gotten = cursor.fetchone()
 		if gotten is not None:
 			friends = (gotten[0]).split(' ')
+			while '' in friends:
+				friends.remove('')
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
 	finally:
