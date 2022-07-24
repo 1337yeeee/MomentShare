@@ -1,4 +1,5 @@
 from RequestHandler import RequestHandler
+from Callback import Callback
 from Message import Message
 import DataHandler as Data
 from Const import VERSION
@@ -11,11 +12,11 @@ class Handler:
 		self.message = message
 		if type(message) == Message:
 			self.do_this = do_this
-		else:
-			self.chat_id = message['from']['id']
-			self.data = message['data'].split('*')
-			self.deal_with_callback()
+		elif type(message) == Callback:
+			self.chat_id = message.chat_id
+			self.data = message.data
 			self.do_this = do_this
+			self.deal_with_callback()
 
 	def handler(self):
 		if self.do_this is not None:
@@ -67,19 +68,23 @@ class Handler:
 
 	@staticmethod
 	def invite_friend(self):
-		if Data.get_user_id(self.message.mention) is not None:
-			text = '{} хочет добавить вас в друзья.\n'.format('@'+self.message.username)
-			user_id = Data.get_user_id(self.message.mention)
-			keyboard = {'inline_keyboard': [[
-				{'text': 'Accept', 'callback_data': f'invitation*{self.message.chat_id}'}
-			]]}
-			extra = ['reply_markup', keyboard]
-			self.rh.send(user_id, text, extra)
-
-			text = 'Приглашение для {} отправленно'.format(self.message.mention)
-			self.rh.send(self.message.chat_id, text)
-
+		if Data.get_user_id(self.message.mention) is None:
 			return None
+
+		user_id = Data.get_user_id(self.message.mention)
+
+		if Handler.is_friend(user_id, self.message.chat_id):
+			return None
+
+		text = '{} хочет добавить вас в друзья.\n'.format('@'+self.message.username)
+		keyboard = {'inline_keyboard': [[
+			{'text': 'Accept', 'callback_data': f'invitation*{self.message.chat_id}'}
+		]]}
+		extra = ['reply_markup', keyboard]
+		self.rh.send(user_id, text, extra)
+
+		text = 'Приглашение для {} отправленно'.format(self.message.mention)
+		self.rh.send(self.message.chat_id, text)
 
 		return None
 
@@ -94,10 +99,10 @@ class Handler:
 
 	def deal_with_callback(self):
 		if self.data[0] == 'invitation':
-			Handler.invite_accept(self.chat_id, int(self.data[1]), self.rh)
+			Handler.invite_accept(self.chat_id, int(self.data[1]), self.rh, self.message.message_id)
 
 	@staticmethod
-	def invite_accept(user1_id: int, user2_id: int, rh: RequestHandler):
+	def invite_accept(user1_id: int, user2_id: int, rh: RequestHandler, message_id: int):
 		# добавить друга, отправить всем, что он добавлен
 		user1_name = Data.get_username(user1_id)
 		user2_name = Data.get_username(user2_id)
@@ -107,11 +112,17 @@ class Handler:
 		friends1 = Data.get_users_friedList(user1_id)
 		friends2 = Data.get_users_friedList(user2_id)
 
-		print(str(user2_id) in friends1)
-		print(str(user1_id) in friends2)
-
 		if str(user2_id) in friends1 and str(user1_id) in friends2:
 			rh.send(user1_id, f'{user2_name} was added to your friends list')
 			rh.send(user2_id, f'{user1_name} was added to your friends list')
+			rh.delete(user1_id, message_id)
 
-# TODO: проверить друзья ли пользователи (уже) до добавления в список друзей
+	@staticmethod
+	def is_friend(user1_id: int, user2_id: int):
+		friends1 = Data.get_users_friedList(user1_id)
+		friends2 = Data.get_users_friedList(user2_id)
+
+		return str(user2_id) in friends1 and str(user1_id) in friends2
+
+
+# TODO: Нельзя добавлять самого себя в друзья

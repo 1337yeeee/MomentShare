@@ -1,8 +1,9 @@
-from RequestHandler import *
-from Message import *
-import ResponseManager
-import DataHandler as Data
 from Const import VERSION, tokenPath
+from RequestHandler import *
+import DataHandler as Data
+import ResponseManager
+from Callback import *
+from Message import *
 
 
 def getToken():
@@ -54,24 +55,22 @@ def main():
 			continue
 		except KeyError:
 			try:
-				message = update['callback_query']
-			except KeyError:
+				message = Callback(update['callback_query'])
+			except KeyError as e:
+				print(e)
 				continue
 
-		# update = update_raw['result'][0]
-		# chat_id = update['message']['chat']['id']
-
-		if chat_id not in task_list:
+		if chat_id not in task_list and chat_id is not None:
 			task_list[chat_id] = None
-		# resp_manager = ResponseManager.Handler(Message(update['message']), rh, task_list[chat_id])
-		resp_manager = ResponseManager.Handler(message, rh, task_list[chat_id])
-		task_list[chat_id] = resp_manager.handler()
+
+		if chat_id is not None:
+			resp_manager = ResponseManager.Handler(message, rh, task_list[chat_id])
+			task_list[chat_id] = resp_manager.handler()
+		else:
+			ResponseManager.Handler(message, rh)
 
 		new_offset = update['update_id'] + 1
 
 if __name__ == '__main__':
 	print('version {}\ndoing time'.format(VERSION))
 	main()
-
-
-# TODO проверять callback_query по message_id
