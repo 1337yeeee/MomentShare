@@ -1,4 +1,5 @@
 from RequestHandler import RequestHandler
+from functools import partial
 from Callback import Callback
 from Message import Message
 import DataHandler as Data
@@ -16,16 +17,19 @@ class Handler:
 			self.chat_id = message.chat_id
 			self.data = message.data
 			self.do_this = do_this
-			self.deal_with_callback()
 
 	def handler(self):
-		if type(self.message) == Message:
+		if self.do_this is not None:
+			return self.do_this(self)
+		elif type(self.message) == Message:
 			if self.message.is_command:
 				return Handler.deal_with_command_func(self)
 			elif self.message.is_photo:
 				self.deal_with_photo_func()
-		if self.do_this is not None:
-			return self.do_this(self)
+		elif type(self.message) == Callback:
+			return self.deal_with_callback()
+		# if self.do_this is not None:
+		# 	return self.do_this(self)
 
 		return None
 
@@ -47,6 +51,10 @@ class Handler:
 			Handler.invite_accept(self.chat_id, int(self.data[1]), self.rh, self.message.message_id)
 		elif self.data[0] == 'delete_friend':
 			Handler.delete_friend(self.chat_id, int(self.data[1]), self.rh, self.message.message_id)
+		elif self.data[0] == 'pic_certain':
+			return self.await_photo()
+
+		return None
 
 	def start(self):
 
@@ -141,14 +149,40 @@ class Handler:
 			rh.delete(chat_id, message_id)
 
 	def send_picture_certain_func(self):
-		pass
+		friends = Data.get_users_friedList(self.message.chat_id)
+
+		text = 'Выберите друга, которому желаете отправить фото'
+		keyboard = {'inline_keyboard': []}
+
+		for friend in friends:
+			keyboard['inline_keyboard'].append([
+				{'text': f'{Data.get_username(friend)}',
+				 'callback_data': f'pic_certain*{friend}'}
+			])
+
+		extra = ['reply_markup', keyboard]
+		self.rh.send(self.message.chat_id, text, extra)
+
+		return None
+
+	@staticmethod
+	def send_picture_certain(self, callback):
+		caption = f'@{self.message.username} отправил тебе фото'
+
+		Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id)
+
+		self.rh.sendPhoto(int(callback.data[1]), self.message.photo_id, caption)
+
+		return None
+
+	def await_photo(self):
+		return partial(Handler.send_picture_certain, callback=self.message)
 
 	def delete_picture_func(self):
 		pass
 
 	@staticmethod
 	def invite_accept(user1_id: int, user2_id: int, rh: RequestHandler, message_id: int):
-		# добавить друга, отправить всем, что он добавлен
 		user1_name = Data.get_username(user1_id)
 		user2_name = Data.get_username(user2_id)
 

@@ -50,12 +50,12 @@ def main():
 			update = update_raw['result'][0]
 			message = Message(update['message'])
 			chat_id = update['message']['chat']['id']
-
 		except IndexError:
 			continue
 		except KeyError:
 			try:
 				message = Callback(update['callback_query'])
+				chat_id = message.chat_id
 			except KeyError as e:
 				print(e)
 				continue
