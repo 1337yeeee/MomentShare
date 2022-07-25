@@ -16,10 +16,8 @@ def create_main_database():
 								 friends TEXT);
 
 								 CREATE TABLE IF NOT EXISTS pictures(
-								 file_id TEXT NOT NULL PRIMARY KEY,
-								 user_id INTEGER NOT NULL,
-								 FOREIGN KEY (user_id)
-								    REFERENCES users (user_id)) """)
+								 file_id TEXT NOT NULL,
+								 user_id INTEGER NOT NULL) """)
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
 	finally:

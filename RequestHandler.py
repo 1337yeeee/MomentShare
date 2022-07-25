@@ -47,3 +47,15 @@ class RequestHandler:
 		params = {'chat_id': chat_id, 'message_id': message_id}
 		resp = r.post(self.url + method, params)
 		return resp
+
+	def sendPhoto(self, chat_id: int, file_id: str, caption: str = ''):
+		""" send photo by its id
+		:param chat_id: chat that should get the photo
+		:param file_id: the id of the photo to be sent
+		:param caption: Optional. photo caption
+		:return: Optional. returns a request response
+		"""
+		method = 'sendPhoto'
+		params = {'chat_id': chat_id, 'photo': file_id, 'caption': caption}
+		resp = r.post(self.url + method, params)
+		return resp

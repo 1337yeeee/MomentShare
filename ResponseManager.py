@@ -19,11 +19,13 @@ class Handler:
 			self.deal_with_callback()
 
 	def handler(self):
-		if self.do_this is not None:
-			return self.do_this(self)
-		elif type(self.message) == Message:
+		if type(self.message) == Message:
 			if self.message.is_command:
 				return Handler.deal_with_command_func(self)
+			elif self.message.is_photo:
+				self.deal_with_photo_func()
+		if self.do_this is not None:
+			return self.do_this(self)
 
 		return None
 
@@ -31,6 +33,14 @@ class Handler:
 	def deal_with_command_func(self):
 		if self.message.text == '/start':
 			return self.start()
+
+	def deal_with_photo_func(self):
+		Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id)
+
+		friends = Data.get_users_friedList(self.message.chat_id)
+
+		for friend in friends:
+			self.rh.sendPhoto(int(friend), self.message.photo_id, f'{self.message.username} делится с Вами фотографией')
 
 	def deal_with_callback(self):
 		if self.data[0] == 'invitation':

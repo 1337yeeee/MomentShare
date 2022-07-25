@@ -23,7 +23,7 @@ class Message:
 		try:
 			if message['photo']:
 				self.is_photo = True
-				self.photo_id = message['photo'][0][3]['file_id']
+				self.photo_id = message['photo'][2]['file_id']
 		except KeyError:
 			pass
 
