@@ -32,6 +32,12 @@ class Handler:
 		if self.message.text == '/start':
 			return self.start()
 
+	def deal_with_callback(self):
+		if self.data[0] == 'invitation':
+			Handler.invite_accept(self.chat_id, int(self.data[1]), self.rh, self.message.message_id)
+		elif self.data[0] == 'delete_friend':
+			Handler.delete_friend(self.chat_id, int(self.data[1]), self.rh, self.message.message_id)
+
 	def start(self):
 
 		text = 'Hello {}\nRead this:\n1) invite friend\n'.format(self.message.name) + \
@@ -71,6 +77,10 @@ class Handler:
 		if Data.get_user_id(self.message.mention) is None:
 			return None
 
+		if self.message.mention == self.message.username:
+			self.rh.send(self.message.chat_id, 'Вы не можете добавить себя к себе же в друзья')
+			return None
+
 		user_id = Data.get_user_id(self.message.mention)
 
 		if Handler.is_friend(user_id, self.message.chat_id):
@@ -89,17 +99,42 @@ class Handler:
 		return None
 
 	def delete_friend_func(self):
-		pass
+		friends = Data.get_users_friedList(self.message.chat_id)
+
+		text = 'Выберите друга, которого желаете удалить из друзей'
+		keyboard = {'inline_keyboard': []}
+
+		for friend in friends:
+			keyboard['inline_keyboard'].append([
+				{'text': f'{Data.get_username(friend)}',
+				 'callback_data': f'delete_friend*{friend}'}
+			])
+
+		extra = ['reply_markup', keyboard]
+		self.rh.send(self.message.chat_id, text, extra)
+
+		return None
+
+	@staticmethod
+	def delete_friend(chat_id: int, user_id: int, rh: RequestHandler, message_id: int):
+		user1_name = Data.get_username(chat_id)
+		user2_name = Data.get_username(user_id)
+
+		Data.delete_friend(chat_id, user_id)
+
+		friends1 = Data.get_users_friedList(chat_id)
+		friends2 = Data.get_users_friedList(user_id)
+
+		if str(user_id) not in friends1 and str(chat_id) not in friends2:
+			rh.send(chat_id, f'{user2_name} was deleted from your friend list')
+			rh.send(user_id, f'{user1_name} deleted you from theirs friend list')
+			rh.delete(chat_id, message_id)
 
 	def send_picture_certain_func(self):
 		pass
 
 	def delete_picture_func(self):
 		pass
-
-	def deal_with_callback(self):
-		if self.data[0] == 'invitation':
-			Handler.invite_accept(self.chat_id, int(self.data[1]), self.rh, self.message.message_id)
 
 	@staticmethod
 	def invite_accept(user1_id: int, user2_id: int, rh: RequestHandler, message_id: int):
@@ -123,6 +158,3 @@ class Handler:
 		friends2 = Data.get_users_friedList(user2_id)
 
 		return str(user2_id) in friends1 and str(user1_id) in friends2
-
-
-# TODO: Нельзя добавлять самого себя в друзья

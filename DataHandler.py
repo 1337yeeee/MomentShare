@@ -165,6 +165,7 @@ def add_friend(user1_id: int, user2_id: int):
 		''' !#!#!#!#!#!#!#!#!#!#!#!#!#!#!#
 		# Позже нужно ограничить список друзей
 		!#!#!#!#!#!#!#!#!#!#!#!#!#!#!# '''
+		# TODO: ограничить список друзей численно
 		# if len(friends) < 10:
 		# 	friends.append(friends_id)
 		# else:
@@ -202,25 +203,44 @@ def delete_friend(user_id: int, friends_id: int):
 	try:
 		db = sqlite3.connect('testdb.db')
 		cursor = db.cursor()
+		# 1
 		cursor.execute(""" SELECT friends FROM users WHERE id = ? """, (user_id,))
 		gotten = cursor.fetchone()
 		if gotten is not None:
 			friends = (gotten[0]).split(' ')
-		if friends_id in friends:
-			friends.remove(friends_id)
-		else: "{} wasn't in your friends list".format(get_username(friends_id))
+			while '' in friends:
+				friends.remove('')
+		if str(friends_id) in friends:
+			friends.remove(str(friends_id))
+		else: return 1
 		friends_s = ''
 		for friend in friends:
 			friends_s += friend + ' '
-		cursor.execute(""" UPDATE users SET friends = ? WHERE id = ? """, (friends,))
+		cursor.execute(""" UPDATE users SET friends = ? WHERE id = ? """, (friends_s, user_id))
+
+		# 2
+		cursor.execute(""" SELECT friends FROM users WHERE id = ? """, (friends_id,))
+		gotten = cursor.fetchone()
+		if gotten is not None:
+			friends = (gotten[0]).split(' ')
+			while '' in friends:
+				friends.remove('')
+		if str(user_id) in friends:
+			friends.remove(str(user_id))
+		else:
+			return 1
+		friends_s = ''
+		for friend in friends:
+			friends_s += friend + ' '
+		cursor.execute(""" UPDATE users SET friends = ? WHERE id = ? """, (friends_s, friends_id))
 		db.commit()
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
 	finally:
 		if db:
 			db.close()
-		
-	return '{} was deleted from your friends list'.format(get_username(friends_id))
+
+	return 0
 
 
 def get_pictures_of_user(user_id: int):
