@@ -1,4 +1,5 @@
 import sqlite3
+import time
 
 
 def create_main_database():
@@ -17,7 +18,9 @@ def create_main_database():
 
 								 CREATE TABLE IF NOT EXISTS pictures(
 								 file_id TEXT NOT NULL,
-								 user_id INTEGER NOT NULL) """)
+								 user_id INTEGER NOT NULL,
+								 date INTEGER NOT NULL,
+								 certain_id INTEGER) """)
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
 	finally:
@@ -46,20 +49,21 @@ def add_user_to_usersTable(user_id: int, username: str):
 			db.close()
 
 
-def add_picture_to_pictureTable(user_id: int, file_id: str):
+def add_picture_to_pictureTable(user_id: int, file_id: str, certain_id: int = None):
 	""" Add new picture to the database
 	this table is connected to the user table with the username
 
 	:param user_id: the user's id to whom the picture belongs
 	:param file_id: the picture's id
+	:param certain_id: Optional. if user sends a picture to a certain friend, the friend's id
 	:return: None
 	"""
 	db = None
 	try:
 		db = sqlite3.connect('testdb.db')
 		cursor = db.cursor()
-		cursor.execute(""" INSERT OR IGNORE INTO pictures (file_id, user_id) VALUES(?, ?) """,
-		               (file_id, user_id))
+		cursor.execute(""" INSERT OR IGNORE INTO pictures (file_id, user_id, date, certain_id) VALUES(?, ?, ?, ?) """,
+		               (file_id, user_id, int(time.time()), certain_id))
 		db.commit()
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
@@ -245,14 +249,14 @@ def get_pictures_of_user(user_id: int):
 	""" Use it to get the pictures of the user
 
 	:param user_id: the user's id whose pictures will be returned
-	:return: list of pictures (pictures are in tuples) or None if there is not any
+	:return: list of pictures (pictures = (file_id, date) or None if there is not any
 	"""
 	pictures = None
 	db = None
 	try:
 		db = sqlite3.connect('testdb.db')
 		cursor = db.cursor()
-		cursor.execute(""" SELECT file_id FROM pictures WHERE id = ? """, (user_id,))
+		cursor.execute(""" SELECT file_id, data FROM pictures WHERE id = ? """, (user_id,))
 		pictures = cursor.fetchall()
 	except sqlite3.Error as e:
 		print('An error occurred\n', e)
@@ -261,6 +265,7 @@ def get_pictures_of_user(user_id: int):
 			db.close()
 
 	return pictures
+# TODO: изменить везде, где вызывается (добавлена дата)
 
 
 # db = None

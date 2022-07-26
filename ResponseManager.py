@@ -19,17 +19,12 @@ class Handler:
 			self.do_this = do_this
 
 	def handler(self):
-		if self.do_this is not None:
+		if type(self.message) == Callback:
+			return self.deal_with_callback()
+		elif self.do_this is not None:
 			return self.do_this(self)
 		elif type(self.message) == Message:
-			if self.message.is_command:
-				return Handler.deal_with_command_func(self)
-			elif self.message.is_photo:
-				self.deal_with_photo_func()
-		elif type(self.message) == Callback:
-			return self.deal_with_callback()
-		# if self.do_this is not None:
-		# 	return self.do_this(self)
+			return self.deal_with_message()
 
 		return None
 
@@ -45,6 +40,12 @@ class Handler:
 
 		for friend in friends:
 			self.rh.sendPhoto(int(friend), self.message.photo_id, f'{self.message.username} делится с Вами фотографией')
+
+	def deal_with_message(self):
+		if self.message.is_command:
+			return Handler.deal_with_command_func(self)
+		elif self.message.is_photo:
+			self.deal_with_photo_func()
 
 	def deal_with_callback(self):
 		if self.data[0] == 'invitation':
@@ -92,6 +93,8 @@ class Handler:
 
 	@staticmethod
 	def invite_friend(self):
+		if type(self.message) == Callback:
+			return None
 		if Data.get_user_id(self.message.mention) is None:
 			return None
 
@@ -167,15 +170,25 @@ class Handler:
 
 	@staticmethod
 	def send_picture_certain(self, callback):
+		if type(self.message) != Message:
+			return None
+		if not self.message.is_photo:
+			return None
+
 		caption = f'@{self.message.username} отправил тебе фото'
 
-		Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id)
+		Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id, int(callback.data[1]))
 
 		self.rh.sendPhoto(int(callback.data[1]), self.message.photo_id, caption)
 
 		return None
 
 	def await_photo(self):
+		self.rh.delete(self.message.chat_id, self.message.message_id)
+
+		text = f'Вы выбрали @{Data.get_username(int(self.data[1]))}.\nОтправьте фото, которое должен получить ваш друг'
+		self.rh.send(self.message.chat_id, text)
+
 		return partial(Handler.send_picture_certain, callback=self.message)
 
 	def delete_picture_func(self):
