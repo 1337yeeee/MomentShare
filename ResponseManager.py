@@ -34,12 +34,14 @@ class Handler:
 			return self.start()
 
 	def deal_with_photo_func(self):
-		Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id)
+		pic_id = Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id)
 
 		friends = Data.get_users_friedList(self.message.chat_id)
 
 		for friend in friends:
-			self.rh.sendPhoto(int(friend), self.message.photo_id, f'{self.message.username} делится с Вами фотографией')
+			resp = self.rh.sendPhoto(int(friend), self.message.photo_id,
+			                         f'{self.message.username} делится с Вами фотографией')
+			Data.add_message_to_picture(pic_id, int(friend), resp['result']['message_id'])
 
 	def deal_with_message(self):
 		if self.message.is_command:
@@ -54,6 +56,8 @@ class Handler:
 			Handler.delete_friend(self.chat_id, int(self.data[1]), self.rh, self.message.message_id)
 		elif self.data[0] == 'pic_certain':
 			return self.await_photo()
+		elif self.data[0] == 'delete_picture':
+			self.delete_picture()
 
 		return None
 
@@ -84,7 +88,7 @@ class Handler:
 		return do_this
 
 	def invite_friend_func(self):
-		text = 'Напишите username друга, которого желаете добавить\n' +\
+		text = 'Напишите username друга, которого желаете добавить\n' + \
 		       'Note that your friend should start this bot to be in your friend list'
 
 		self.rh.send(self.message.chat_id, text)
@@ -107,7 +111,7 @@ class Handler:
 		if Handler.is_friend(user_id, self.message.chat_id):
 			return None
 
-		text = '{} хочет добавить вас в друзья.\n'.format('@'+self.message.username)
+		text = '{} хочет добавить вас в друзья.\n'.format('@' + self.message.username)
 		keyboard = {'inline_keyboard': [[
 			{'text': 'Accept', 'callback_data': f'invitation*{self.message.chat_id}'}
 		]]}
@@ -177,9 +181,10 @@ class Handler:
 
 		caption = f'@{self.message.username} отправил тебе фото'
 
-		Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id, int(callback.data[1]))
+		Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id)
 
-		self.rh.sendPhoto(int(callback.data[1]), self.message.photo_id, caption)
+		resp = self.rh.sendPhoto(int(callback.data[1]), self.message.photo_id, caption)
+		Data.add_message_to_picture(self.message.photo_id, resp['result']['message_id'], int(callback.data[1]))
 
 		return None
 
@@ -192,7 +197,41 @@ class Handler:
 		return partial(Handler.send_picture_certain, callback=self.message)
 
 	def delete_picture_func(self):
-		pass
+		pictures = Data.get_users_pictures(self.message.chat_id)
+
+		# keyboard = {'inline_keyboard': []}
+		messages_tobe_deleted = []
+		for pic_id, file_id in pictures:
+			keyboard = {'inline_keyboard': [
+				[{'text': 'Delete',
+				 'callback_data': f'delete_picture*{pic_id}'}]
+			]}
+
+			extra = ['reply_markup', keyboard]
+			resp = self.rh.sendPhoto(self.message.chat_id, file_id, extra=extra)
+			messages_tobe_deleted.append(resp['result']['message_id'])
+
+		self.rh.send(self.message.chat_id, 'Выберите фото, которое желаете удалить')
+
+		return partial(Handler.return_messages, messages=messages_tobe_deleted)  # 1232131!
+
+	def delete_picture(self):
+		messages = None
+		if isinstance(self.do_this, partial):
+			if self.do_this.func == Handler.return_messages:
+				messages = self.do_this()
+
+		if messages is not None:
+			for msg in messages:
+				self.rh.delete(self.message.chat_id, msg)
+
+		messages = Data.delete_picture(self.data[1])
+		for msg in messages:
+			self.rh.delete(msg[0], msg[1])
+
+	@staticmethod
+	def return_messages(messages: list[int]):
+		return messages
 
 	@staticmethod
 	def invite_accept(user1_id: int, user2_id: int, rh: RequestHandler, message_id: int):
@@ -215,3 +254,6 @@ class Handler:
 		friends2 = Data.get_users_friedList(user2_id)
 
 		return str(user2_id) in friends1 and str(user1_id) in friends2
+
+# TODO cделать все отправленные фото временными (24 часа, например)
+# TODO удалять отправленные фото, если пользователь запросил все фото друга

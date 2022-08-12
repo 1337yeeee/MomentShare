@@ -8,4 +8,7 @@ class Callback:
 		self.chat_id = self.callback['from']['id']
 		self.username = self.callback['from']['username']
 		self.message_id = self.callback['message']['message_id']
-		self.text = self.callback['message']['text']
+		try:
+			self.text = self.callback['message']['text']
+		except KeyError:
+			pass
