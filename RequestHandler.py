@@ -62,3 +62,18 @@ class RequestHandler:
 			params[extra[0]] = json.dumps(extra[1])
 		resp = r.post(self.url + method, params)
 		return resp.json()
+
+	def editMessage(self, chat_id: int, message_id: int, text: str, reply_markup=None):
+		""" edit message by its id
+		:param chat_id: chat where message was sent
+		:param message_id: the id oh the message to be edited
+		:param text: the text that will replace previous one
+		:param reply_markup: reply markup to be passed
+		:return: Optional. returns a request response in json
+		"""
+		method = 'editMessageText'
+		params = {'chat_id': chat_id, 'message_id': message_id, 'text': text}
+		if reply_markup is not None:
+			params['reply_markup'] = json.dumps(reply_markup)
+		resp = r.post(self.url + method, params)
+		return resp.json()

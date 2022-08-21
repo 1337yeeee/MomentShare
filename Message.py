@@ -4,6 +4,7 @@ class Message:
 
 	def __init__(self, message):
 		self.message = message
+		self.message_id = message['message_id']
 		self.name = message['chat']['first_name']
 		self.chat_id = message['chat']['id']
 		self.username = message['from']['username']

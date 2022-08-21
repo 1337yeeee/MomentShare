@@ -1,5 +1,5 @@
 from Const import VERSION, tokenPath
-from RequestHandler import *
+from RequestHandler import RequestHandler
 import DataHandler as Data
 import ResponseManager
 from Callback import *
@@ -43,7 +43,6 @@ def main():
 	while True:
 
 		update_raw = rh.get(new_offset)
-		chat_id = None
 		update = {}
 
 		try:
