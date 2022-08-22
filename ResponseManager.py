@@ -79,11 +79,14 @@ class Handler:
 		elif self.message.data[0] == 'delfriend':
 			self.delete_friend_func()
 		elif self.message.data[0] == 'seepictur':
-			self.show_all_pictures()
+			self.show_all_pictures_func()
 		elif self.message.data[0] == 'delpictur':  # TODO
 			return self.delete_picture_func()
 		elif self.message.data[0] == 'sendpicto':
 			self.send_picture_certain_func()
+		elif self.message.data[0] == 'show_pics_set' or \
+			 self.message.data[0] == 'show_pics_get':
+			self.show_all_pictures()
 
 		return None
 
@@ -224,40 +227,38 @@ class Handler:
 		text = 'Выберите, от кого желаете увидеть все фото'
 		keyboard = {'inline_keyboard': [
 			[
-				{'text': 'Свои',
-				 'callback_data': f'delete_friend*{friend}'}
+				{'text': 'Я отправил',
+				 'callback_data': f'show_pics_set*{self.message.chat_id}'},
+				{'text': 'Я получил',
+				 'callback_data': f'show_pics_get*{self.message.chat_id}'}
 			]
 		]}
 
 		for friend in friends:
 			keyboard['inline_keyboard'].append([
-				{'text': f'{Data.get_username(friend)}',
-				 'callback_data': f'delete_friend*{friend}'}
+				{'text': f'Отправил {Data.get_username(friend)}',
+				 'callback_data': f'show_pics_set*{friend}'},
+				{'text': f'Получил {Data.get_username(friend)}',
+				 'callback_data': f'show_pics_get*{friend}'}
 			])
 
 		extra = ['reply_markup', keyboard]
 		self.rh.send(self.message.chat_id, text, extra)
 
-	# функция отправляет все фото, которые отправил этот пользователь.
-	# TODO нужно сделать функцию(ии), которая будет отправлять все фото определенного пользователя или всех пользователей
 	def show_all_pictures(self):
-		pictures = Data.get_users_pictures(self.message.chat_id)
-
-		if len(pictures) == 0:
-			text = 'Вы не отправляли фото'
-			self.rh.send(self.message.chat_id, text)
+		if not isinstance(self.message, Callback):
 			return None
 
-		for pic_id, file_id in pictures:
-			message_id = Data.get_message_id_from_pic_message(pic_id, self.message.chat_id)
-			self.rh.delete(self.message.chat_id, message_id)
-			Data.delete_pic_message(self.message.chat_id, message_id)
-			date = Data.get_picture(pic_id)['date']
-			resp = self.rh.sendPhoto(self.message.chat_id, file_id, f'_{date}_')
-			Data.add_message_to_picture(pic_id, self.message.chat_id, resp['result']['message_id'])
-
-	def _show_all_pictures_(self):  # TODO
-		pic_ids = Data.get_picture_by_user(self.message.chat_id)
+		pic_ids = []
+		if int(self.message.data[1]) == self.message.chat_id:
+			if self.message.data[0] == 'show_pics_set':
+				pic_ids = Data.get_picture_by_user_only_set(self.message.chat_id)
+			elif self.message.data[0] == 'show_pics_get':
+				pic_ids = Data.get_picture_by_user_only_get(self.message.chat_id)
+		elif self.message.data[0] == 'show_pics_set':
+			pic_ids = Data.get_picture_by_user(self.message.chat_id, int(self.message.data[1]))
+		elif self.message.data[0] == 'show_pics_get':
+			pic_ids = Data.get_picture_by_user(int(self.message.data[1]), self.message.chat_id)
 
 		if len(pic_ids) == 0:
 			text = 'Фото не найдены'
@@ -366,7 +367,7 @@ class Handler:
 		friends1 = Data.get_users_friedList(user1_id)
 		friends2 = Data.get_users_friedList(user2_id)
 
-		if str(user2_id) in friends1 and str(user1_id) in friends2:
+		if user2_id in friends1 and user1_id in friends2:
 			rh.send(user1_id, f'{user2_name} was added to your friends list')
 			rh.send(user2_id, f'{user1_name} was added to your friends list')
 			rh.delete(user1_id, message_id)

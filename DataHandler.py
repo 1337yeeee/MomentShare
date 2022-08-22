@@ -62,8 +62,8 @@ def create_main_database():
 								 chat_id INTEGER NOT NULL,
 								 message_id INTEGER NOT NULL,
 								 time INTEGER NOT NULL,
-								 FOREIGN KYE (pic_id) REFERENCES pictures(id)
-								 ON DELETE CASCADE;
+								 FOREIGN KEY (pic_id) REFERENCES pictures(id)
+								 ON DELETE CASCADE);
 								 
 								 CREATE TABLE IF NOT EXISTS menu_message(
 								 chat_id INTEGER NOT NULL UNIQUE,
@@ -79,7 +79,7 @@ def create_main_database():
 								 FOREIGN KEY (user_get_id) REFERENCES users(id)
 								 ON DELETE CASCADE,
 								 FOREIGN KEY (user_set_id) REFERENCES users(id)
-								 ON DELETE CASCADE;
+								 ON DELETE CASCADE);
 								 """)  # TODO pic_user добавить foreign key
 
 	except sqlite3.Error as e:
@@ -135,10 +135,11 @@ def add_picture_to_pictureTable(user_id: int, file_id: str):
 	return pic_id
 
 
-def get_picture_by_user(user_id: int) -> list[str]:
+def get_picture_by_user(user_get_id: int, user_set_id: int) -> list[str]:
 	""" Use it to get the id of the picture by the id of the user
 
-	:param user_id: the id of the user that have access to the picture
+	:param user_set_id: the id of the user that have access to the picture  TODO
+	:param user_get_id: the id of the user that have access to the picture  TODO
 	:return: list of ids of the pictures or [] if there are none
 	"""
 	pictures = []
@@ -146,12 +147,53 @@ def get_picture_by_user(user_id: int) -> list[str]:
 	try:
 		db = sqlite3.connect(databasePath)
 		cursor = db.cursor()
-		cursor.execute(""" SELECT pic_id FROM pic_user WHERE user_id=? """, (user_id,))
+		cursor.execute(""" SELECT pic_id FROM pic_user WHERE user_get_id=? AND user_set_id=? """,
+		               (user_get_id, user_set_id))
 		gotten = cursor.fetchall()
 		if gotten is not None:
 			pictures = [i[0] for i in gotten]
 	except sqlite3.Error as e:
 		print('An error occurred in get_picture_by_user()\n', e)
+	finally:
+		if db:
+			db.close()
+
+	return pictures
+
+
+def get_picture_by_user_only_set(user_set_id: int) -> list[str]:
+	pictures = []
+	db = None
+	try:
+		db = sqlite3.connect(databasePath)
+		cursor = db.cursor()
+		cursor.execute(""" SELECT pic_id FROM pic_user WHERE user_set_id=? """,
+		               (user_set_id,))
+		gotten = cursor.fetchall()
+		if gotten is not None:
+			pictures = list(set([i[0] for i in gotten]))
+	except sqlite3.Error as e:
+		print('An error occurred in get_picture_by_user_only_set()\n', e)
+	finally:
+		if db:
+			db.close()
+
+	return pictures
+
+
+def get_picture_by_user_only_get(user_get_id: int) -> list[str]:
+	pictures = []
+	db = None
+	try:
+		db = sqlite3.connect(databasePath)
+		cursor = db.cursor()
+		cursor.execute(""" SELECT pic_id FROM pic_user WHERE user_get_id=? """,
+		               (user_get_id,))
+		gotten = cursor.fetchall()
+		if gotten is not None:
+			pictures = list(set([i[0] for i in gotten]))
+	except sqlite3.Error as e:
+		print('An error occurred in get_picture_by_user_only_get()\n', e)
 	finally:
 		if db:
 			db.close()
@@ -592,7 +634,7 @@ def get_menu_message(chat_id):
 		               (chat_id,))
 		gotten = cursor.fetchone()
 		if gotten is not None:
-			message_id = gotten[0][0]
+			message_id = gotten[0]
 	except sqlite3.Error as e:
 		print('An error occurred in get_menu_message()\n', e)
 	finally:
