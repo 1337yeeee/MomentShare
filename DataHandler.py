@@ -1,12 +1,15 @@
 from __future__ import annotations
 from Const import databasePath, maximumFriends, expirationTime
-import inspect
 import sqlite3
 import random
 import time
 
 
 def create_id():
+	""" Creates random id
+
+	:return: string - id
+	"""
 	choose_list = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
 	id_ = ''
 	for i in range(10):
@@ -15,6 +18,10 @@ def create_id():
 
 
 def confirm_id():
+	""" Generates unique id
+
+	:return: string - id
+	"""
 	existing_ids = ()
 
 	db = None
@@ -166,6 +173,11 @@ def get_picture_by_user(user_get_id: int, user_set_id: int) -> list[dict[str, st
 
 
 def get_picture_by_user_only_set(user_set_id: int) -> list[dict[str, str | int]] | list:
+	""" Returns pictures that were sent by the user
+
+	:param user_set_id: the id of the user who sent the pictures
+	:return: list of dictionaries with keys: 'pic_id', 'user_get_id', 'user_set_id' OR []
+	"""
 	pictures_users = []
 	db = None
 	try:
@@ -189,6 +201,11 @@ def get_picture_by_user_only_set(user_set_id: int) -> list[dict[str, str | int]]
 
 
 def get_picture_by_user_only_get(user_get_id: int) -> list[dict[str, str | int]] | list:
+	""" Returns pictures that where received by the user
+
+	:param user_get_id: the id of the user who received the pictures
+	:return: list of dictionaries with keys: 'pic_id', 'user_get_id', 'user_set_id' OR []
+	"""
 	pictures_users = []
 	db = None
 	try:
@@ -310,6 +327,13 @@ def get_users_pictures(user_id: int):
 
 
 def add_pic_user(pic_id: str, user_get_id: int, user_set_id: int):
+	""" Adds a record to the table 'pic_user' - a table linking the picture, the sender and the recipient
+
+	:param pic_id: the id of the picture to be added
+	:param user_get_id: the id of the user who will receive the picture
+	:param user_set_id: the id of the user who sent the picture
+	:return: None
+	"""
 	db = None
 	try:
 		db = sqlite3.connect(databasePath)
@@ -319,20 +343,6 @@ def add_pic_user(pic_id: str, user_get_id: int, user_set_id: int):
 		db.commit()
 	except sqlite3.Error as e:
 		print('An error occurred in add_pic_user()\n', e)
-	finally:
-		if db:
-			db.close()
-
-
-def delete_pic_user(pic_id: str, user_id: int):
-	db = None
-	try:
-		db = sqlite3.connect(databasePath)
-		cursor = db.cursor()
-		cursor.execute(""" DELETE FROM pic_user WHERE pic_id=? AND user_id=? """, (pic_id, user_id))
-		db.commit()
-	except sqlite3.Error as e:
-		print('An error occurred in delete_pic_user()\n', e)
 	finally:
 		if db:
 			db.close()
@@ -552,14 +562,7 @@ def delete_pic_message(chat_id: int, message_id: int):
 		cursor.execute(""" DELETE FROM pic_message WHERE chat_id=? AND message_id=? """, (chat_id, message_id))
 		db.commit()
 	except sqlite3.Error as e:
-		print('*-*-*-*-*-*-*-*-*-*-*-*-*')
 		print('An error occurred in delete_pic_message()\n', e)
-		current_frame = inspect.currentframe()
-		caller_frame = current_frame.f_back
-		code_obj = caller_frame.f_code
-		code_obj_name = code_obj.co_name
-		print("Имя вызывающего объекта: ", code_obj_name)
-		print('*-*-*-*-*-*-*-*-*-*-*-*-*')
 	finally:
 		if db:
 			db.close()
@@ -680,17 +683,3 @@ def delete_menu_message(chat_id):
 	finally:
 		if db:
 			db.close()
-
-
-# db = None
-# try:
-# 	db = sqlite3.connect(databasePath)
-# 	cursor = db.cursor()
-# 	cursor.execute("""  """)
-# 	db.commit()
-# except sqlite3.Error as e:
-# 	print('An error occurred\n', e)
-# finally:
-# 	if db:
-# 		db.close()
-#

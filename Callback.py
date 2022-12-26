@@ -3,6 +3,10 @@
 class Callback:
 
 	def __init__(self, update):
+		""" If update contains a 'callback_query'. For easier work with the update
+
+		:param update: update from Telegram API UPDATE['result'][0]['callback_query']
+		"""
 		self.callback = update
 		self.data = self.callback['data'].split('*')
 		self.chat_id = self.callback['from']['id']

@@ -7,6 +7,10 @@ from Message import *
 
 
 def getToken():
+	""" Extract the token from file
+
+	:return: Telegram Bot token
+	"""
 	while True:
 		try:
 			with open(tokenPath, 'r', encoding='utf-8') as tpF:
@@ -20,6 +24,10 @@ def getToken():
 
 
 def clear_updates(rh):
+	""" Clears updates that were stored before application was started
+
+	:param rh: RequestHandler object
+	"""
 	new_offset = None
 
 	update_raw = rh.get(new_offset, 1)
@@ -32,8 +40,8 @@ def clear_updates(rh):
 def main():
 	Data.create_main_database()
 
-	new_offset = None
-	task_list = {}
+	new_offset = None  # later new_offset = update['update_id'] + 1
+	task_list = {}  # contains {chat_id: method} for ResponseManager.do_this
 
 	token = getToken()
 

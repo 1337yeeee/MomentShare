@@ -7,13 +7,30 @@ from Const import VERSION
 
 
 class Handler:
+	"""
+	Think of "the user" as the person who sends requests
+	and "the friend" as the person who receives messages from "the user"
+	and who can accept or reject requests from "the user"
+	"""
 
 	def __init__(self, message, rh: RequestHandler, do_this=None):
+		""" The message type depends on the external response. The message type also determines which functions will be executed. For example, some functions only accept callback_query
+		rh: RequestHandler is used to send requests to Telegram API
+		do_this: Some actions require additional user action, such as selecting the photo they want to delete
+
+		:param message: the object of the Message or Callback classes
+		:param rh: the object of the RequestHandler class
+		:param do_this: the function to call before dealing with message as Message
+		"""
 		self.rh = rh
 		self.message = message
 		self.do_this = do_this
 
 	def handler(self):
+		""" The main method of the class
+
+		:return: action method for do_this or None
+		"""
 		Handler.get_rid_of_expired(self.rh)
 
 		if type(self.message) == Callback:
@@ -26,6 +43,10 @@ class Handler:
 		return None
 
 	def deal_with_command_func(self):
+		""" If message is a command
+
+		:return: None
+		"""
 		if self.message.command == '/start':
 			self.start()
 		elif self.message.command == '/menu':
@@ -35,6 +56,10 @@ class Handler:
 		return None
 
 	def deal_with_photo_func(self):
+		""" If message contains a photo. Sends photo to all your friends
+
+		:return: None
+		"""
 		pic_id = Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id)
 		Data.add_message_to_picture(pic_id, self.message.chat_id, self.message.message_id)
 
@@ -47,6 +72,10 @@ class Handler:
 			Data.add_pic_user(pic_id, friend, self.message.chat_id)
 
 	def deal_with_message(self):
+		""" If message is an object of Message class
+
+		:return: None
+		"""
 		if self.message.is_command:
 			self.deal_with_command_func()
 		elif self.message.is_photo:
@@ -57,6 +86,10 @@ class Handler:
 		return None
 
 	def deal_with_callback(self):
+		""" If message is an object of Callback class
+
+		:return: action method for do_this or None
+		"""
 		if self.message.data[0] == 'invitation':
 			Handler.invite_accept(self.message.chat_id, int(self.message.data[1]), self.rh, self.message.message_id)
 		elif self.message.data[0] == 'decline_inv':
@@ -92,6 +125,10 @@ class Handler:
 		return None
 
 	def menu_func(self):
+		""" Sends a menu to Telegram user
+
+		:return: None
+		"""
 		text = 'menu text'
 		keyboard = {'inline_keyboard': [
 			[{'text': 'Друзья', 'callback_data': 'friends'}],
@@ -109,6 +146,10 @@ class Handler:
 			self.rh.editMessage(self.message.chat_id, self.message.message_id, text, keyboard)
 
 	def menu_friends(self):
+		""" Updates the menu with friends submenu
+
+		:return: None
+		"""
 		text = 'friends menu text'
 		keyboard = {'inline_keyboard': [
 			[{'text': 'Добавить друга', 'callback_data': 'addfriend'}],
@@ -119,6 +160,10 @@ class Handler:
 		self.rh.editMessage(self.message.chat_id, self.message.message_id, text, keyboard)
 
 	def menu_pictures(self):
+		""" Updates the menu with pictures submenu
+
+		:return: None
+		"""
 		text = 'Pictures menu text'
 		keyboard = {'inline_keyboard': [
 			[{'text': 'Посмотреть все фото', 'callback_data': 'seepictur'}],
@@ -130,6 +175,11 @@ class Handler:
 
 	@staticmethod
 	def get_rid_of_expired(rh: RequestHandler):
+		""" Deletes messages with pictures that have expired
+
+		:param rh: RequestHandler object
+		:return: None
+		"""
 		messages = Data.get_expired_pictures()
 
 		for message in messages:
@@ -137,6 +187,10 @@ class Handler:
 			Data.delete_pic_message(message['chat_id'], message['message_id'])
 
 	def start(self):
+		""" Method of '/start' command. Sends an instruction
+
+		:return: None
+		"""
 		text = f'Здравствуй {self.message.name}!' \
 		       f'Отправь команду /menu для того, чтобы увидеть возможности бота\n' \
 		       f'------------\nversion: {VERSION}'
@@ -146,12 +200,25 @@ class Handler:
 		self.rh.send(self.message.chat_id, text)
 
 	def invite_friend_func(self):
+		""" Method of '/add' command. Sends an instruction
+
+		:return: None
+		"""
 		text = 'Напишите username друга, которого желаете добавить\n' + \
 		       'Note that your friend should start this bot to be in your friend list'
 
 		self.rh.send(self.message.chat_id, text)
 
 	def invite_friend(self):
+		""" Sends an invitation to the friend.
+		Will send the message to the user if:
+		- the friend hasn't started the bot
+		- the friend is already in the user's friend list
+		- the friend and the user are the same person
+		Otherwise, sends the message to the friend with accepting request
+
+		:return: None
+		"""
 		if Data.get_user_id(self.message.mention) is None:
 			text = 'The user you want to invite hasn\'t started the bot yet'
 			self.rh.send(self.message.chat_id, text)
@@ -183,6 +250,10 @@ class Handler:
 		return None
 
 	def show_all_friends(self):
+		""" Sends message with the usernames and number of friends
+
+		:return: None
+		"""
 		friends = Data.get_users_friedList(self.message.chat_id)
 
 		if len(friends) == 0:
@@ -195,6 +266,10 @@ class Handler:
 		self.rh.send(self.message.chat_id, text)
 
 	def delete_friend_func(self):
+		""" Sends a message with buttons that contain usernames of the friends and callback_data to delete them
+
+		:return: None
+		"""
 		friends = Data.get_users_friedList(self.message.chat_id)
 
 		text = 'Выберите друга, которого желаете удалить из друзей'
@@ -210,6 +285,11 @@ class Handler:
 		self.rh.send(self.message.chat_id, text, extra)
 
 	def delete_friend(self):
+		""" Deletes the user and the friend from their friends lists. Sends messages to both of them.
+		Deletes message that was sent by Handler.delete_friend_func()
+
+		:return: None
+		"""
 		user1_name = Data.get_username(self.message.chat_id)
 		user2_name = Data.get_username(self.message.chat_id)
 
@@ -224,6 +304,12 @@ class Handler:
 			self.rh.delete(self.message.chat_id, self.message.message_id)
 
 	def show_all_pictures_func(self):
+		""" Method of 'seepictur' callback of picture submenu.
+		Sends message with choice commands:
+		from whom the photos were received or to whom the photos were sent
+
+		:return: None
+		"""
 		friends = Data.get_users_friedList(self.message.chat_id)
 
 		text = 'Выберите, от кого желаете увидеть все фото'
@@ -248,6 +334,15 @@ class Handler:
 		self.rh.send(self.message.chat_id, text, extra)
 
 	def show_all_pictures(self):
+		""" Deals with Callback.
+		Sends the pictures that:\n
+		- were sent to the user by someone\n
+		- were sent to someone by the user\n
+		- were received by the user\n
+		- were sent by the user
+
+		:return: None
+		"""
 		if not isinstance(self.message, Callback):
 			return None
 
@@ -283,6 +378,10 @@ class Handler:
 			Data.add_message_to_picture(pic_id, self.message.chat_id, resp['result']['message_id'])
 
 	def send_picture_certain_func(self):
+		""" Sends message with buttons that contain usernames of the friends and callback_data who to send the picture
+
+		:return: None
+		"""
 		friends = Data.get_users_friedList(self.message.chat_id)
 
 		text = 'Выберите друга, которому желаете отправить фото'
@@ -301,6 +400,12 @@ class Handler:
 
 	@staticmethod
 	def send_picture_certain(self, callback):
+		""" Sends a picture to the certain friend, whose id is in the callback.
+
+		:param self: previous object of Handler class
+		:param callback: received callback
+		:return: None
+		"""
 		if type(self.message) != Message:
 			return None
 		if not self.message.is_photo:
@@ -318,6 +423,10 @@ class Handler:
 		return None
 
 	def await_photo(self):
+		""" Sends an instruction to the user after they chose the friend who will receive the photo
+
+		:return: Handler.send_picture_certain method with callback=self.message
+		"""
 		self.rh.delete(self.message.chat_id, self.message.message_id)
 
 		text = f'Вы выбрали @{Data.get_username(int(self.message.data[1]))}.' \
@@ -327,6 +436,12 @@ class Handler:
 		return partial(Handler.send_picture_certain, callback=self.message)
 
 	def delete_picture_func(self):
+		""" Sends messages that contain a picture and a button
+		that contains callback_data to delete the picture and
+		the picture's id
+
+		:return: Handler.return_messages method with the messages that were sent to be deleted after selecting
+		"""
 		pictures = Data.get_users_pictures(self.message.chat_id)
 
 		messages_tobe_deleted = []
@@ -349,6 +464,11 @@ class Handler:
 		return partial(Handler.return_messages, messages=messages_tobe_deleted)
 
 	def delete_picture(self):
+		""" Deletes messages that were used to select the photo.
+		And deletes the picture from database and from every user that has received it
+
+		:return: None
+		"""
 		messages = None
 		if isinstance(self.do_this, partial):
 			if self.do_this.func == Handler.return_messages:
@@ -364,10 +484,23 @@ class Handler:
 
 	@staticmethod
 	def return_messages(messages: list[int]):
+		""" Static method to remember messages
+
+		:param messages: the messages to return
+		:return: list of the messages ids
+		"""
 		return messages
 
 	@staticmethod
 	def invite_accept(user1_id: int, user2_id: int, rh: RequestHandler, message_id: int):
+		""" Sends messages to the user and the friend that they have been added to each other's friend lists
+
+		:param user1_id: the user's id
+		:param user2_id: the friend's id
+		:param rh: RequestHandler object
+		:param message_id: the id of the invitation message
+		:return: None
+		"""
 		user1_name = Data.get_username(user1_id)
 		user2_name = Data.get_username(user2_id)
 
@@ -383,6 +516,16 @@ class Handler:
 
 	@staticmethod
 	def invite_decline(user1_id: int, user2_id: int, rh: RequestHandler, message_id: int):
+		""" Sends messages to:\n
+		- the user: the_friend_username declined your request\n
+		- the friend: You declined request from the_user_username
+
+		:param user1_id: the user's id
+		:param user2_id: the friend's id
+		:param rh: RequestHandler object
+		:param message_id: the id of the invitation message
+		:return:
+		"""
 		user1_name = Data.get_username(user1_id)
 		user2_name = Data.get_username(user2_id)
 
@@ -392,6 +535,13 @@ class Handler:
 
 	@staticmethod
 	def is_friend(user1_id: int, user2_id: int):
+		""" Checks if user1 and user2 are friends
+
+		:param user1_id: user id
+		:param user2_id: user id
+		:return: True if user1 is friend of user2
+		False if user1 is not friend of user2
+		"""
 		friends1 = Data.get_users_friedList(user1_id)
 		friends2 = Data.get_users_friedList(user2_id)
 
