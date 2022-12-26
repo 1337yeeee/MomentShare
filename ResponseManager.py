@@ -14,7 +14,6 @@ class Handler:
 		self.do_this = do_this
 
 	def handler(self):
-		# TODO проверить!
 		Handler.get_rid_of_expired(self.rh)
 
 		if type(self.message) == Callback:
@@ -31,7 +30,7 @@ class Handler:
 			self.start()
 		elif self.message.command == '/menu':
 			self.menu_func()
-		elif self.message.command == '/add':  # TODO добавить команду боту
+		elif self.message.command == '/add':
 			self.invite_friend()
 		return None
 
@@ -60,6 +59,8 @@ class Handler:
 	def deal_with_callback(self):
 		if self.message.data[0] == 'invitation':
 			Handler.invite_accept(self.message.chat_id, int(self.message.data[1]), self.rh, self.message.message_id)
+		elif self.message.data[0] == 'decline_inv':
+			Handler.invite_decline(self.message.chat_id, int(self.message.data[1]), self.rh, self.message.message_id)
 		elif self.message.data[0] == 'delete_friend':
 			self.delete_friend()
 		elif self.message.data[0] == 'pic_certain':
@@ -80,7 +81,7 @@ class Handler:
 			self.delete_friend_func()
 		elif self.message.data[0] == 'seepictur':
 			self.show_all_pictures_func()
-		elif self.message.data[0] == 'delpictur':  # TODO
+		elif self.message.data[0] == 'delpictur':
 			return self.delete_picture_func()
 		elif self.message.data[0] == 'sendpicto':
 			self.send_picture_certain_func()
@@ -118,11 +119,11 @@ class Handler:
 		self.rh.editMessage(self.message.chat_id, self.message.message_id, text, keyboard)
 
 	def menu_pictures(self):
-		text = 'friends menu text'
+		text = 'Pictures menu text'
 		keyboard = {'inline_keyboard': [
-			[{'text': '/see_pictures', 'callback_data': 'seepictur'}],
-			[{'text': '/delete_picture', 'callback_data': 'delpictur'}],
-			[{'text': '/send_certain', 'callback_data': 'sendpicto'}],
+			[{'text': 'Посмотреть все фото', 'callback_data': 'seepictur'}],
+			[{'text': 'Удалить фото', 'callback_data': 'delpictur'}],
+			[{'text': 'Отправить фото другу', 'callback_data': 'sendpicto'}],
 			[{'text': '<- Меню', 'callback_data': 'menu'}]
 		]}
 		self.rh.editMessage(self.message.chat_id, self.message.message_id, text, keyboard)
@@ -170,7 +171,8 @@ class Handler:
 
 		text = '{} хочет добавить вас в друзья.\n'.format('@' + self.message.username)
 		keyboard = {'inline_keyboard': [[
-			{'text': 'Accept', 'callback_data': f'invitation*{self.message.chat_id}'}
+			{'text': 'Accept', 'callback_data': f'invitation*{self.message.chat_id}'},
+			{'text': 'Decline', 'callback_data': f'decline_inv*{self.message.chat_id}'}
 		]]}
 		extra = ['reply_markup', keyboard]
 		self.rh.send(user_id, text, extra)
@@ -221,7 +223,7 @@ class Handler:
 			self.rh.send(int(self.message.data[1]), f'{user1_name} deleted you from theirs friend list')
 			self.rh.delete(self.message.chat_id, self.message.message_id)
 
-	def show_all_pictures_func(self):  # TODO доделать
+	def show_all_pictures_func(self):
 		friends = Data.get_users_friedList(self.message.chat_id)
 
 		text = 'Выберите, от кого желаете увидеть все фото'
@@ -249,31 +251,35 @@ class Handler:
 		if not isinstance(self.message, Callback):
 			return None
 
-		pic_ids = []
+		pictures_users = []
 		if int(self.message.data[1]) == self.message.chat_id:
 			if self.message.data[0] == 'show_pics_set':
-				pic_ids = Data.get_picture_by_user_only_set(self.message.chat_id)
+				pictures_users = Data.get_picture_by_user_only_set(self.message.chat_id)
 			elif self.message.data[0] == 'show_pics_get':
-				pic_ids = Data.get_picture_by_user_only_get(self.message.chat_id)
+				pictures_users = Data.get_picture_by_user_only_get(self.message.chat_id)
 		elif self.message.data[0] == 'show_pics_set':
-			pic_ids = Data.get_picture_by_user(self.message.chat_id, int(self.message.data[1]))
+			pictures_users = Data.get_picture_by_user(self.message.chat_id, int(self.message.data[1]))
 		elif self.message.data[0] == 'show_pics_get':
-			pic_ids = Data.get_picture_by_user(int(self.message.data[1]), self.message.chat_id)
+			pictures_users = Data.get_picture_by_user(int(self.message.data[1]), self.message.chat_id)
 
-		if len(pic_ids) == 0:
+		if len(pictures_users) == 0:
 			text = 'Фото не найдены'
 			self.rh.send(self.message.chat_id, text)
 			return None
 
-		for pic_id in pic_ids:
+		for pic_user in pictures_users:
+			pic_id = pic_user['pic_id']
 			picture = Data.get_picture(pic_id)
 			file_id = picture['file_id']
 			message_id = Data.get_message_id_from_pic_message(pic_id, self.message.chat_id)
-			self.rh.delete(self.message.chat_id, message_id)
-			Data.delete_pic_message(self.message.chat_id, message_id)
-			date = Data.get_picture(pic_id)['date']
-			username = Data.get_username(picture['user_id'])
-			resp = self.rh.sendPhoto(self.message.chat_id, file_id, f'@{username} sent photo\non _{date}_')
+			if message_id:
+				self.rh.delete(self.message.chat_id, message_id)
+				Data.delete_pic_message(self.message.chat_id, message_id)
+			date = picture['date']
+			username_set = Data.get_username(pic_user['user_set_id'])
+			username_get = Data.get_username(pic_user['user_get_id'])
+			resp = self.rh.sendPhoto(self.message.chat_id, file_id, f'@{username_set} sent photo to @{username_get}\n'
+			                                                        f'on _{date}_')
 			Data.add_message_to_picture(pic_id, self.message.chat_id, resp['result']['message_id'])
 
 	def send_picture_certain_func(self):
@@ -294,7 +300,7 @@ class Handler:
 		return None
 
 	@staticmethod
-	def send_picture_certain(self, callback):  # TODO: check this
+	def send_picture_certain(self, callback):
 		if type(self.message) != Message:
 			return None
 		if not self.message.is_photo:
@@ -336,6 +342,9 @@ class Handler:
 
 		resp = self.rh.send(self.message.chat_id, 'Выберите фото, которое желаете удалить')
 		messages_tobe_deleted.append(resp['result']['message_id'])
+		if len(pictures) == 0:
+			resp = self.rh.send(self.message.chat_id, 'Нет фото')
+			messages_tobe_deleted.append(resp['result']['message_id'])
 
 		return partial(Handler.return_messages, messages=messages_tobe_deleted)
 
@@ -368,13 +377,22 @@ class Handler:
 		friends2 = Data.get_users_friedList(user2_id)
 
 		if user2_id in friends1 and user1_id in friends2:
-			rh.send(user1_id, f'{user2_name} was added to your friends list')
-			rh.send(user2_id, f'{user1_name} was added to your friends list')
+			rh.send(user1_id, f'{user2_name} was added ✅ to your friends list')
+			rh.send(user2_id, f'{user1_name} was added ✅ to your friends list')
 			rh.delete(user1_id, message_id)
+
+	@staticmethod
+	def invite_decline(user1_id: int, user2_id: int, rh: RequestHandler, message_id: int):
+		user1_name = Data.get_username(user1_id)
+		user2_name = Data.get_username(user2_id)
+
+		rh.send(user1_id, f'You declined ❌ the friend request from {user2_name}')
+		rh.send(user2_id, f'{user1_name} declined ❌ your request')
+		rh.delete(user1_id, message_id)
 
 	@staticmethod
 	def is_friend(user1_id: int, user2_id: int):
 		friends1 = Data.get_users_friedList(user1_id)
 		friends2 = Data.get_users_friedList(user2_id)
 
-		return str(user2_id) in friends1 and str(user1_id) in friends2
+		return user2_id in friends1 and user1_id in friends2

@@ -7,7 +7,7 @@ class Message:
 		self.message_id = message['message_id']
 		self.name = message['chat']['first_name']
 		self.chat_id = message['chat']['id']
-		self.username = message['from']['username']
+		self.username = message['from']['username']  # TODO не у всех есть username
 		self.text = ''
 		self.is_command = False
 		self.is_mention = False
@@ -24,7 +24,7 @@ class Message:
 		try:
 			if message['photo']:
 				self.is_photo = True
-				self.photo_id = message['photo'][2]['file_id']
+				self.photo_id = message['photo'][-1]['file_id']
 		except KeyError:
 			pass
 
@@ -48,3 +48,11 @@ class Message:
 		length = self.message['entities'][index]['length']
 
 		return self.text[offset:length]
+
+	@staticmethod
+	def is_message(update):
+		keys = update.keys()
+		if 'message' in keys:
+			return True
+		else:
+			return False

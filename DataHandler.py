@@ -1,5 +1,6 @@
 from __future__ import annotations
 from Const import databasePath, maximumFriends, expirationTime
+import inspect
 import sqlite3
 import random
 import time
@@ -80,7 +81,7 @@ def create_main_database():
 								 ON DELETE CASCADE,
 								 FOREIGN KEY (user_set_id) REFERENCES users(id)
 								 ON DELETE CASCADE);
-								 """)  # TODO pic_user добавить foreign key
+								 """)
 
 	except sqlite3.Error as e:
 		print('An error occurred in create_main_database()\n', e)
@@ -135,14 +136,14 @@ def add_picture_to_pictureTable(user_id: int, file_id: str):
 	return pic_id
 
 
-def get_picture_by_user(user_get_id: int, user_set_id: int) -> list[str]:
+def get_picture_by_user(user_get_id: int, user_set_id: int) -> list[dict[str, str | int]] | list:
 	""" Use it to get the id of the picture by the id of the user
 
-	:param user_set_id: the id of the user that have access to the picture  TODO
-	:param user_get_id: the id of the user that have access to the picture  TODO
-	:return: list of ids of the pictures or [] if there are none
+	:param user_set_id: the id of the user that sent the picture
+	:param user_get_id: the id of the user that have access to the picture
+	:return: list of dictionary with keys: pic_id, user_get_id, user_get_id or [] if there are none
 	"""
-	pictures = []
+	pictures_users = []
 	db = None
 	try:
 		db = sqlite3.connect(databasePath)
@@ -151,54 +152,63 @@ def get_picture_by_user(user_get_id: int, user_set_id: int) -> list[str]:
 		               (user_get_id, user_set_id))
 		gotten = cursor.fetchall()
 		if gotten is not None:
-			pictures = [i[0] for i in gotten]
+			for pic_id in gotten:
+				pictures_users.append({'pic_id': pic_id[0],
+				                       'user_get_id': user_get_id,
+				                       'user_set_id': user_set_id})
 	except sqlite3.Error as e:
 		print('An error occurred in get_picture_by_user()\n', e)
 	finally:
 		if db:
 			db.close()
 
-	return pictures
+	return pictures_users
 
 
-def get_picture_by_user_only_set(user_set_id: int) -> list[str]:
-	pictures = []
+def get_picture_by_user_only_set(user_set_id: int) -> list[dict[str, str | int]] | list:
+	pictures_users = []
 	db = None
 	try:
 		db = sqlite3.connect(databasePath)
 		cursor = db.cursor()
-		cursor.execute(""" SELECT pic_id FROM pic_user WHERE user_set_id=? """,
+		cursor.execute(""" SELECT pic_id, user_get_id FROM pic_user WHERE user_set_id=? """,
 		               (user_set_id,))
 		gotten = cursor.fetchall()
 		if gotten is not None:
-			pictures = list(set([i[0] for i in gotten]))
+			for pic in gotten:
+				pictures_users.append({'pic_id': pic[0],
+				                       'user_get_id': pic[1],
+				                       'user_set_id': user_set_id})
 	except sqlite3.Error as e:
 		print('An error occurred in get_picture_by_user_only_set()\n', e)
 	finally:
 		if db:
 			db.close()
 
-	return pictures
+	return pictures_users
 
 
-def get_picture_by_user_only_get(user_get_id: int) -> list[str]:
-	pictures = []
+def get_picture_by_user_only_get(user_get_id: int) -> list[dict[str, str | int]] | list:
+	pictures_users = []
 	db = None
 	try:
 		db = sqlite3.connect(databasePath)
 		cursor = db.cursor()
-		cursor.execute(""" SELECT pic_id FROM pic_user WHERE user_get_id=? """,
+		cursor.execute(""" SELECT pic_id, user_set_id FROM pic_user WHERE user_get_id=? """,
 		               (user_get_id,))
 		gotten = cursor.fetchall()
 		if gotten is not None:
-			pictures = list(set([i[0] for i in gotten]))
+			for pic in gotten:
+				pictures_users.append({'pic_id': pic[0],
+				                       'user_get_id': user_get_id,
+				                       'user_set_id': pic[1]})
 	except sqlite3.Error as e:
 		print('An error occurred in get_picture_by_user_only_get()\n', e)
 	finally:
 		if db:
 			db.close()
 
-	return pictures
+	return pictures_users
 
 
 def add_message_to_picture(pic_id: str, chat_id: int, message_id: int):
@@ -238,7 +248,7 @@ def get_message_id_from_pic_message(pic_id: str, chat_id: int):
 		               (pic_id, chat_id))
 		gotten = cursor.fetchall()
 		if gotten is not None and gotten != []:
-			message_id = gotten[0]
+			message_id = gotten[0][0]
 	except sqlite3.Error as e:
 		print('An error occurred in get_message_id_from_pic_message()\n', e)
 	finally:
@@ -264,6 +274,7 @@ def delete_picture(pic_id: str) -> list[tuple[int, int]]:
 		if gotten is not None:
 			messages = gotten
 		cursor.execute(""" DELETE FROM pictures WHERE id = ? """, (pic_id,))
+		cursor.execute(""" DELETE FROM pic_user WHERE pic_id = ? """, (pic_id,))
 		db.commit()
 	except sqlite3.Error as e:
 		print('An error occurred in delete_picture()\n', e)
@@ -541,7 +552,14 @@ def delete_pic_message(chat_id: int, message_id: int):
 		cursor.execute(""" DELETE FROM pic_message WHERE chat_id=? AND message_id=? """, (chat_id, message_id))
 		db.commit()
 	except sqlite3.Error as e:
+		print('*-*-*-*-*-*-*-*-*-*-*-*-*')
 		print('An error occurred in delete_pic_message()\n', e)
+		current_frame = inspect.currentframe()
+		caller_frame = current_frame.f_back
+		code_obj = caller_frame.f_code
+		code_obj_name = code_obj.co_name
+		print("Имя вызывающего объекта: ", code_obj_name)
+		print('*-*-*-*-*-*-*-*-*-*-*-*-*')
 	finally:
 		if db:
 			db.close()
