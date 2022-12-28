@@ -10,7 +10,7 @@ Telegram bot for sharing pictures
 - **expirationTime** - ограничение на существование отправленных и полученных фотографий в чатах
 
 ## Запуск
-Для запуска бота используйте комманду![image](https://user-images.githubusercontent.com/45238097/209676199-05dee03b-c63e-43dd-b771-cfbbff99f59b.png)
+Для запуска бота используйте комманду
 
 `python main.py`
 
@@ -65,13 +65,11 @@ Telegram bot for sharing pictures
 ![image](https://user-images.githubusercontent.com/45238097/209675937-5e6a548b-1441-4005-b26e-0398dacc9553.png)
 
 
-Подменю, связанное с друзьями
+Приглашение друга
 
-![image](https://user-images.githubusercontent.com/45238097/209676092-107be904-cec3-4832-9407-8db37344567e.png)
+![Приглашение](https://user-images.githubusercontent.com/45238097/209837584-e2b402d9-a34b-405f-937d-5f2d949f7ad8.png)
 
+Удаление фото
 
-Подменю, связанное с фотографиями
-
-![image](https://user-images.githubusercontent.com/45238097/209676112-eaec5307-5b39-471c-8c72-8d96aa6b87b7.png)
-
+![Удалить фото](https://user-images.githubusercontent.com/45238097/209837749-5685f0f6-ef23-4f9f-9ca3-d75358a16ac5.png)
 
