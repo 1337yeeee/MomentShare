@@ -59,15 +59,19 @@ Telegram bot for sharing pictures
 
 ![image](https://user-images.githubusercontent.com/45238097/209675313-40c89746-d9d1-42c9-af64-59f14a9d3c2d.png)
 
+<hr>
 
 Меню бота, вызванное коммандой `/menu`
 
 ![image](https://user-images.githubusercontent.com/45238097/209675937-5e6a548b-1441-4005-b26e-0398dacc9553.png)
 
+<hr>
 
 Приглашение друга
 
 ![Приглашение](https://user-images.githubusercontent.com/45238097/209837584-e2b402d9-a34b-405f-937d-5f2d949f7ad8.png)
+
+<hr>
 
 Удаление фото
 
