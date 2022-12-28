@@ -63,8 +63,8 @@ def main():
 			try:
 				message = Callback(update['callback_query'])
 				chat_id = message.chat_id
-			except KeyError as e:
-				print(e)
+			except KeyError:
+				new_offset = update['update_id'] + 1
 				continue
 
 		if chat_id not in task_list and chat_id is not None:

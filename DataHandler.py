@@ -88,6 +88,10 @@ def create_main_database():
 								 ON DELETE CASCADE,
 								 FOREIGN KEY (user_set_id) REFERENCES users(id)
 								 ON DELETE CASCADE);
+								 
+								 CREATE TABLE IF NOT EXISTS messages_to_delete(
+								 chat_id INTEGER NOT NULL,
+								 message_id INTEGER NOT NULL);
 								 """)
 
 	except sqlite3.Error as e:
@@ -680,6 +684,71 @@ def delete_menu_message(chat_id):
 		db.commit()
 	except sqlite3.Error as e:
 		print('An error occurred in delete_menu_message()\n', e)
+	finally:
+		if db:
+			db.close()
+
+
+def add_messages_to_delete(chat_id: int, messages: list[int]):
+	""" Add messages that need to be deleted to the database
+
+	:param chat_id: the id of the chat where the messages were sent
+	:param messages: the list of ids of the messages to be deleted
+	"""
+	db = None
+	try:
+		db = sqlite3.connect(databasePath)
+		cursor = db.cursor()
+		for message in messages:
+			cursor.execute(""" INSERT INTO messages_to_delete (chat_id, message_id) VALUES (?, ?) """,
+		               (chat_id, message))
+		db.commit()
+	except sqlite3.Error as e:
+		print('An error occurred in add_messages_to_delete()\n', e)
+	finally:
+		if db:
+			db.close()
+
+
+def get_messages_to_delete(chat_id: int) -> list[int]:
+	""" Get messages to delete in the given chat
+
+	:param chat_id: the id of the chat where messages should be deleted
+	:return: list of ids of the messages to be deleted
+	"""
+	db = None
+	messages = []
+	try:
+		db = sqlite3.connect(databasePath)
+		cursor = db.cursor()
+		cursor.execute(""" SELECT message_id FROM messages_to_delete WHERE chat_id=? """,
+		               (chat_id,))
+		messages = cursor.fetchall()
+		messages = [message[0] for message in messages]
+	except sqlite3.Error as e:
+		print('An error occurred in get_messages_to_delete()\n', e)
+	finally:
+		if db:
+			db.close()
+
+	return messages
+
+
+def delete_message_to_delete(chat_id: int, message_id: int):
+	""" Delete record from 'messages_to_delete' table
+
+	:param chat_id: the id of the chat where message was deleted
+	:param message_id: the id of the message that was deleted
+	"""
+	db = None
+	try:
+		db = sqlite3.connect(databasePath)
+		cursor = db.cursor()
+		cursor.execute(""" DELETE FROM messages_to_delete WHERE chat_id=? AND message_id=? """,
+		               (chat_id, message_id))
+		db.commit()
+	except sqlite3.Error as e:
+		print('An error occurred in delete_message_to_delete()\n', e)
 	finally:
 		if db:
 			db.close()

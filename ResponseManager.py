@@ -32,6 +32,7 @@ class Handler:
 		:return: action method for do_this or None
 		"""
 		Handler.get_rid_of_expired(self.rh)
+		Handler.get_rid_of_message(self.rh, self.message.chat_id)
 
 		if type(self.message) == Callback:
 			return self.deal_with_callback()
@@ -43,9 +44,8 @@ class Handler:
 		return None
 
 	def deal_with_command_func(self):
-		""" If message is a command
-
-		:return: None
+		"""
+		If message is a command
 		"""
 		if self.message.command == '/start':
 			self.start()
@@ -56,9 +56,8 @@ class Handler:
 		return None
 
 	def deal_with_photo_func(self):
-		""" If message contains a photo. Sends photo to all your friends
-
-		:return: None
+		"""
+		If message contains a photo. Sends photo to all your friends
 		"""
 		pic_id = Data.add_picture_to_pictureTable(self.message.chat_id, self.message.photo_id)
 		Data.add_message_to_picture(pic_id, self.message.chat_id, self.message.message_id)
@@ -72,9 +71,8 @@ class Handler:
 			Data.add_pic_user(pic_id, friend, self.message.chat_id)
 
 	def deal_with_message(self):
-		""" If message is an object of Message class
-
-		:return: None
+		"""
+		If message is an object of Message class
 		"""
 		if self.message.is_command:
 			self.deal_with_command_func()
@@ -125,9 +123,8 @@ class Handler:
 		return None
 
 	def menu_func(self):
-		""" Sends a menu to Telegram user
-
-		:return: None
+		"""
+		Sends a menu to Telegram user
 		"""
 		text = 'menu text'
 		keyboard = {'inline_keyboard': [
@@ -146,9 +143,8 @@ class Handler:
 			self.rh.editMessage(self.message.chat_id, self.message.message_id, text, keyboard)
 
 	def menu_friends(self):
-		""" Updates the menu with friends submenu
-
-		:return: None
+		"""
+		Updates the menu with friends submenu
 		"""
 		text = 'friends menu text'
 		keyboard = {'inline_keyboard': [
@@ -160,9 +156,8 @@ class Handler:
 		self.rh.editMessage(self.message.chat_id, self.message.message_id, text, keyboard)
 
 	def menu_pictures(self):
-		""" Updates the menu with pictures submenu
-
-		:return: None
+		"""
+		Updates the menu with pictures submenu
 		"""
 		text = 'Pictures menu text'
 		keyboard = {'inline_keyboard': [
@@ -178,7 +173,6 @@ class Handler:
 		""" Deletes messages with pictures that have expired
 
 		:param rh: RequestHandler object
-		:return: None
 		"""
 		messages = Data.get_expired_pictures()
 
@@ -186,10 +180,22 @@ class Handler:
 			rh.delete(message['chat_id'], message['message_id'])
 			Data.delete_pic_message(message['chat_id'], message['message_id'])
 
-	def start(self):
-		""" Method of '/start' command. Sends an instruction
+	@staticmethod
+	def get_rid_of_message(rh: RequestHandler, chat_id: int):
+		""" Deletes messages that should be deleted. For example, menu-messages
 
-		:return: None
+		:param rh: RequestHandler object
+		:param chat_id: chat where messages should be deleted
+		"""
+		messages = Data.get_messages_to_delete(chat_id)
+
+		for message_id in messages:
+			rh.delete(chat_id, message_id)
+			Data.delete_message_to_delete(chat_id, message_id)
+
+	def start(self):
+		"""
+		Method of '/start' command. Sends an instruction
 		"""
 		text = f'Здравствуй {self.message.name}!' \
 		       f'Отправь команду /menu для того, чтобы увидеть возможности бота\n' \
@@ -200,9 +206,8 @@ class Handler:
 		self.rh.send(self.message.chat_id, text)
 
 	def invite_friend_func(self):
-		""" Method of '/add' command. Sends an instruction
-
-		:return: None
+		"""
+		Method of '/add' command. Sends an instruction
 		"""
 		text = 'Напишите username друга, которого желаете добавить\n' + \
 		       'Note that your friend should start this bot to be in your friend list'
@@ -216,8 +221,6 @@ class Handler:
 		- the friend is already in the user's friend list
 		- the friend and the user are the same person
 		Otherwise, sends the message to the friend with accepting request
-
-		:return: None
 		"""
 		if Data.get_user_id(self.message.mention) is None:
 			text = 'The user you want to invite hasn\'t started the bot yet'
@@ -250,9 +253,8 @@ class Handler:
 		return None
 
 	def show_all_friends(self):
-		""" Sends message with the usernames and number of friends
-
-		:return: None
+		"""
+		Sends message with the usernames and number of friends
 		"""
 		friends = Data.get_users_friedList(self.message.chat_id)
 
@@ -266,9 +268,8 @@ class Handler:
 		self.rh.send(self.message.chat_id, text)
 
 	def delete_friend_func(self):
-		""" Sends a message with buttons that contain usernames of the friends and callback_data to delete them
-
-		:return: None
+		"""
+		Sends a message with buttons that contain usernames of the friends and callback_data to delete them
 		"""
 		friends = Data.get_users_friedList(self.message.chat_id)
 
@@ -285,13 +286,12 @@ class Handler:
 		self.rh.send(self.message.chat_id, text, extra)
 
 	def delete_friend(self):
-		""" Deletes the user and the friend from their friends lists. Sends messages to both of them.
+		"""
+		Deletes the user and the friend from their friends lists. Sends messages to both of them.
 		Deletes message that was sent by Handler.delete_friend_func()
-
-		:return: None
 		"""
 		user1_name = Data.get_username(self.message.chat_id)
-		user2_name = Data.get_username(self.message.chat_id)
+		user2_name = Data.get_username(self.message.data[1])
 
 		Data.delete_friend(self.message.chat_id, int(self.message.data[1]))
 
@@ -304,11 +304,10 @@ class Handler:
 			self.rh.delete(self.message.chat_id, self.message.message_id)
 
 	def show_all_pictures_func(self):
-		""" Method of 'seepictur' callback of picture submenu.
+		"""
+		Method of 'seepictur' callback of picture submenu.
 		Sends message with choice commands:
 		from whom the photos were received or to whom the photos were sent
-
-		:return: None
 		"""
 		friends = Data.get_users_friedList(self.message.chat_id)
 
@@ -334,14 +333,13 @@ class Handler:
 		self.rh.send(self.message.chat_id, text, extra)
 
 	def show_all_pictures(self):
-		""" Deals with Callback.
+		"""
+		Deals with Callback.
 		Sends the pictures that:\n
 		- were sent to the user by someone\n
 		- were sent to someone by the user\n
 		- were received by the user\n
 		- were sent by the user
-
-		:return: None
 		"""
 		if not isinstance(self.message, Callback):
 			return None
@@ -378,9 +376,8 @@ class Handler:
 			Data.add_message_to_picture(pic_id, self.message.chat_id, resp['result']['message_id'])
 
 	def send_picture_certain_func(self):
-		""" Sends message with buttons that contain usernames of the friends and callback_data who to send the picture
-
-		:return: None
+		"""
+		Sends message with buttons that contain usernames of the friends and callback_data who to send the picture
 		"""
 		friends = Data.get_users_friedList(self.message.chat_id)
 
@@ -404,7 +401,6 @@ class Handler:
 
 		:param self: previous object of Handler class
 		:param callback: received callback
-		:return: None
 		"""
 		if type(self.message) != Message:
 			return None
@@ -431,16 +427,16 @@ class Handler:
 
 		text = f'Вы выбрали @{Data.get_username(int(self.message.data[1]))}.' \
 		       f'\nОтправьте фото, которое должен получить ваш друг'
-		self.rh.send(self.message.chat_id, text)
+		resp = self.rh.send(self.message.chat_id, text)
+		Data.add_messages_to_delete(self.message.chat_id, [resp['result']['message_id']])
 
 		return partial(Handler.send_picture_certain, callback=self.message)
 
 	def delete_picture_func(self):
-		""" Sends messages that contain a picture and a button
+		"""
+		Sends messages that contain a picture and a button
 		that contains callback_data to delete the picture and
 		the picture's id
-
-		:return: Handler.return_messages method with the messages that were sent to be deleted after selecting
 		"""
 		pictures = Data.get_users_pictures(self.message.chat_id)
 
@@ -461,35 +457,14 @@ class Handler:
 			resp = self.rh.send(self.message.chat_id, 'Нет фото')
 			messages_tobe_deleted.append(resp['result']['message_id'])
 
-		return partial(Handler.return_messages, messages=messages_tobe_deleted)
+		Data.add_messages_to_delete(self.message.chat_id, messages_tobe_deleted)
 
 	def delete_picture(self):
-		""" Deletes messages that were used to select the photo.
-		And deletes the picture from database and from every user that has received it
-
-		:return: None
+		""" Deletes the picture from the database and from every user that has received it
 		"""
-		messages = None
-		if isinstance(self.do_this, partial):
-			if self.do_this.func == Handler.return_messages:
-				messages = self.do_this()
-
-		if messages is not None:
-			for msg in messages:
-				self.rh.delete(self.message.chat_id, msg)
-
 		messages = Data.delete_picture(self.message.data[1])
 		for msg in messages:
 			self.rh.delete(msg[0], msg[1])
-
-	@staticmethod
-	def return_messages(messages: list[int]):
-		""" Static method to remember messages
-
-		:param messages: the messages to return
-		:return: list of the messages ids
-		"""
-		return messages
 
 	@staticmethod
 	def invite_accept(user1_id: int, user2_id: int, rh: RequestHandler, message_id: int):
@@ -499,7 +474,6 @@ class Handler:
 		:param user2_id: the friend's id
 		:param rh: RequestHandler object
 		:param message_id: the id of the invitation message
-		:return: None
 		"""
 		user1_name = Data.get_username(user1_id)
 		user2_name = Data.get_username(user2_id)
@@ -524,7 +498,6 @@ class Handler:
 		:param user2_id: the friend's id
 		:param rh: RequestHandler object
 		:param message_id: the id of the invitation message
-		:return:
 		"""
 		user1_name = Data.get_username(user1_id)
 		user2_name = Data.get_username(user2_id)
